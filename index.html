@@ -2,44 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Simple App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Form</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Entries</h1>
-    <form action="{{ url_for('add_entry') }}" method="post">
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required>
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-        <input type="submit" value="Add Entry">
-    </form>
+    <div class="container">
+        <h1>Transaction Form</h1>
+        <form id="transaction-form">
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date" required>
 
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entry in data %}
-            <tr>
-                <td>{{ entry.id }}</td>
-                <td>{{ entry.name }}</td>
-                <td>{{ entry.email }}</td>
-                <td>
-                    <form action="{{ url_for('edit_entry') }}" method="post" style="display:inline;">
-                        <input type="hidden" name="id" value="{{ entry.id }}">
-                        <input type="text" name="name" value="{{ entry.name }}">
-                        <input type="email" name="email" value="{{ entry.email }}">
-                        <input type="submit" value="Edit">
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            <label for="who">Who:</label>
+            <input type="text" id="who" name="who" required>
+
+            <label for="to">To:</label>
+            <input type="text" id="to" name="to" required>
+
+            <label for="method">Method:</label>
+            <input type="text" id="method" name="method" required>
+
+            <label for="category">Category:</label>
+            <input type="text" id="category" name="category" required>
+
+            <label for="description">Purchases Description:</label>
+            <input type="text" id="description" name="description" required>
+
+            <label for="amount">Amount:</label>
+            <input type="number" id="amount" name="amount" step="0.01" required>
+
+            <label for="currency">Currency:</label>
+            <select id="currency" name="currency" required>
+                <option value="EUR">EUR</option>
+                <option value="TWD">TWD</option>
+                <option value="OTHER">OTHER</option>
+            </select>
+
+            <label for="eur-con">EUR S. CON.:</label>
+            <input type="number" id="eur-con" name="eur-con" step="0.01" readonly>
+
+            <button type="submit">Submit</button>
+        </form>
+
+        <h2>Transaction Entries</h2>
+        <table id="transaction-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Who</th>
+                    <th>To</th>
+                    <th>Method</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Currency</th>
+                    <th>EUR S. CON.</th>
+                    <th>Edit</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
