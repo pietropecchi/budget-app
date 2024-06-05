@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (transaction.currency === 'TWD') {
             transaction['eur-con'] = (transaction.amount / 35).toFixed(2);
         } else {
-            transaction['eur-con'] = prompt('Please enter conversion to EUR:');
+            transaction['eur-con'] = calculateOtherCurrencyConversion(transaction.amount);
         }
 
         transactions.push(transaction);
@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const key in transaction) {
             const cell = document.createElement('td');
             cell.textContent = transaction[key];
+            cell.setAttribute('data-key', key);
             row.appendChild(cell);
         }
 
@@ -40,23 +41,73 @@ document.addEventListener('DOMContentLoaded', () => {
         const editCell = document.createElement('td');
         const editButton = document.createElement('button');
         editButton.textContent = 'Edit';
-        editButton.addEventListener('click', () => editTransaction(row, transaction));
+        editButton.addEventListener('click', () => enableEditing(row));
         editCell.appendChild(editButton);
         row.appendChild(editCell);
 
         tableBody.appendChild(row);
     }
 
-    function editTransaction(row, transaction) {
-        for (const key in transaction) {
-            const input = document.querySelector(`#transaction-form [name="${key}"]`);
-            if (input) {
-                input.value = transaction[key];
-            }
-        }
-        tableBody.removeChild(row);
+    function enableEditing(row) {
+        row.classList.add('editable');
 
-        transactions = transactions.filter(t => t !== transaction);
+        Array.from(row.children).forEach(cell => {
+            const key = cell.getAttribute('data-key');
+            if (key && key !== 'eur-con') {
+                const input = document.createElement('input');
+                input.type = key === 'amount' ? 'number' : 'text';
+                input.value = cell.textContent;
+                input.setAttribute('data-key', key);
+                cell.textContent = '';
+                cell.appendChild(input);
+            }
+        });
+
+        const editButton = row.querySelector('button');
+        editButton.textContent = 'Save';
+        editButton.removeEventListener('click', enableEditing);
+        editButton.addEventListener('click', () => saveChanges(row));
+    }
+
+    function saveChanges(row) {
+        const updatedTransaction = {};
+
+        Array.from(row.children).forEach(cell => {
+            const input = cell.querySelector('input');
+            if (input) {
+                const key = input.getAttribute('data-key');
+                updatedTransaction[key] = input.value;
+                cell.textContent = input.value;
+            } else {
+                const key = cell.getAttribute('data-key');
+                updatedTransaction[key] = cell.textContent;
+            }
+        });
+
+        // Recalculate EUR S. CON.
+        if (updatedTransaction.currency === 'EUR') {
+            updatedTransaction['eur-con'] = updatedTransaction.amount;
+        } else if (updatedTransaction.currency === 'TWD') {
+            updatedTransaction['eur-con'] = (updatedTransaction.amount / 35).toFixed(2);
+        } else {
+            updatedTransaction['eur-con'] = calculateOtherCurrencyConversion(updatedTransaction.amount);
+        }
+
+        const index = transactions.findIndex(t => t.date === updatedTransaction.date && t.who === updatedTransaction.who);
+        transactions[index] = updatedTransaction;
         localStorage.setItem('transactions', JSON.stringify(transactions));
+
+        row.classList.remove('editable');
+
+        const editButton = row.querySelector('button');
+        editButton.textContent = 'Edit';
+        editButton.removeEventListener('click', saveChanges);
+        editButton.addEventListener('click', () => enableEditing(row));
+    }
+
+    function calculateOtherCurrencyConversion(amount) {
+        // Here you can implement any logic for conversion of 'OTHER' currency type
+        // For now, we'll assume it returns the input amount, as conversion logic isn't provided
+        return amount;
     }
 });

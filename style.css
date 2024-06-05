@@ -37,3 +37,11 @@ th, td {
 th {
     background-color: #f2f2f2;
 }
+
+.editable {
+    background-color: #ffebcd;
+}
+
+button {
+    padding: 5px 10px;
+}
