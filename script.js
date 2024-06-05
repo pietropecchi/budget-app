@@ -1,113 +1,97 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('transaction-form');
-    const tableBody = document.querySelector('#transaction-table tbody');
+$(document).ready(function() {
+    const form = $('#transaction-form');
+    const tableBody = $('#transaction-table tbody');
 
-    // Load existing data from local storage
-    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-    transactions.forEach(transaction => addTransactionToTable(transaction));
+    // Load existing data from the server
+    function loadTransactions() {
+        $.get('http://localhost:8000/transactions', function(data) {
+            tableBody.empty();
+            data.forEach(transaction => addTransactionToTable(transaction));
+        });
+    }
 
-    form.addEventListener('submit', event => {
+    loadTransactions();
+
+    form.on('submit', function(event) {
         event.preventDefault();
-        const formData = new FormData(form);
-        const transaction = Object.fromEntries(formData.entries());
+        const formData = form.serializeArray();
+        const transaction = {};
+        formData.forEach(item => transaction[item.name] = item.value);
 
-        // Calculate EUR S. CON.
-        if (transaction.currency === 'EUR') {
-            transaction['eur-con'] = transaction.amount;
-        } else if (transaction.currency === 'TWD') {
-            transaction['eur-con'] = (transaction.amount / 35).toFixed(2);
-        } else {
-            transaction['eur-con'] = calculateOtherCurrencyConversion(transaction.amount);
-        }
-
-        transactions.push(transaction);
-        localStorage.setItem('transactions', JSON.stringify(transactions));
-
-        addTransactionToTable(transaction);
-        form.reset();
+        $.post('http://localhost:8000/transactions', JSON.stringify(transaction), function(newTransaction) {
+            addTransactionToTable(newTransaction);
+            form[0].reset();
+        }, 'json');
     });
 
     function addTransactionToTable(transaction) {
-        const row = document.createElement('tr');
+        const row = $('<tr></tr>');
 
         for (const key in transaction) {
-            const cell = document.createElement('td');
-            cell.textContent = transaction[key];
-            cell.setAttribute('data-key', key);
-            row.appendChild(cell);
+            const cell = $('<td></td>').text(transaction[key]).attr('data-key', key);
+            row.append(cell);
         }
 
         // Edit button
-        const editCell = document.createElement('td');
-        const editButton = document.createElement('button');
-        editButton.textContent = 'Edit';
-        editButton.addEventListener('click', () => enableEditing(row));
-        editCell.appendChild(editButton);
-        row.appendChild(editCell);
+        const editCell = $('<td></td>');
+        const editButton = $('<button class="btn btn-secondary btn-sm">Edit</button>');
+        editButton.on('click', () => enableEditing(row, transaction));
+        editCell.append(editButton);
+        row.append(editCell);
 
-        tableBody.appendChild(row);
+        tableBody.append(row);
     }
 
-    function enableEditing(row) {
-        row.classList.add('editable');
+    function enableEditing(row, transaction) {
+        row.addClass('editable');
 
-        Array.from(row.children).forEach(cell => {
-            const key = cell.getAttribute('data-key');
-            if (key && key !== 'eur-con') {
-                const input = document.createElement('input');
-                input.type = key === 'amount' ? 'number' : 'text';
-                input.value = cell.textContent;
-                input.setAttribute('data-key', key);
-                cell.textContent = '';
-                cell.appendChild(input);
+        row.children('td').each(function() {
+            const cell = $(this);
+            const key = cell.attr('data-key');
+            if (key && key !== 'id') {
+                const input = $('<input>').attr('type', key === 'amount' ? 'number' : 'text')
+                                          .val(cell.text())
+                                          .attr('data-key', key)
+                                          .addClass('form-control');
+                cell.html(input);
             }
         });
 
-        const editButton = row.querySelector('button');
-        editButton.textContent = 'Save';
-        editButton.removeEventListener('click', enableEditing);
-        editButton.addEventListener('click', () => saveChanges(row));
+        const editButton = row.find('button');
+        editButton.text('Save');
+        editButton.off('click').on('click', () => saveChanges(row, transaction));
     }
 
-    function saveChanges(row) {
-        const updatedTransaction = {};
+    function saveChanges(row, originalTransaction) {
+        const updatedTransaction = { id: originalTransaction.id };
 
-        Array.from(row.children).forEach(cell => {
-            const input = cell.querySelector('input');
-            if (input) {
-                const key = input.getAttribute('data-key');
-                updatedTransaction[key] = input.value;
-                cell.textContent = input.value;
+        row.children('td').each(function() {
+            const cell = $(this);
+            const input = cell.find('input');
+            if (input.length) {
+                const key = input.attr('data-key');
+                updatedTransaction[key] = input.val();
+                cell.text(input.val());
             } else {
-                const key = cell.getAttribute('data-key');
-                updatedTransaction[key] = cell.textContent;
+                const key = cell.attr('data-key');
+                updatedTransaction[key] = cell.text();
             }
         });
 
-        // Recalculate EUR S. CON.
-        if (updatedTransaction.currency === 'EUR') {
-            updatedTransaction['eur-con'] = updatedTransaction.amount;
-        } else if (updatedTransaction.currency === 'TWD') {
-            updatedTransaction['eur-con'] = (updatedTransaction.amount / 35).toFixed(2);
-        } else {
-            updatedTransaction['eur-con'] = calculateOtherCurrencyConversion(updatedTransaction.amount);
-        }
+        $.ajax({
+            url: `http://localhost:8000/transactions/${originalTransaction.id}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(updatedTransaction),
+            success: function() {
+                loadTransactions();
+            }
+        });
 
-        const index = transactions.findIndex(t => t.date === updatedTransaction.date && t.who === updatedTransaction.who);
-        transactions[index] = updatedTransaction;
-        localStorage.setItem('transactions', JSON.stringify(transactions));
+        row.removeClass('editable');
 
-        row.classList.remove('editable');
-
-        const editButton = row.querySelector('button');
-        editButton.textContent = 'Edit';
-        editButton.removeEventListener('click', saveChanges);
-        editButton.addEventListener('click', () => enableEditing(row));
-    }
-
-    function calculateOtherCurrencyConversion(amount) {
-        // Here you can implement any logic for conversion of 'OTHER' currency type
-        // For now, we'll assume it returns the input amount, as conversion logic isn't provided
-        return amount;
+        const editButton = row.find('button');
+        editButton.text('Edit');
+        editButton.off('click').on('click', () => enableEditing(row, updatedTransaction));
     }
 });
