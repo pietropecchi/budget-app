@@ -4,7 +4,7 @@ const { createObjectCsvWriter } = require('csv-writer');
 const fs = require('fs');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000; // Ensure it reads the PORT environment variable
 const csvFilePath = 'data.csv';
 
 app.use(bodyParser.json());
@@ -49,4 +49,6 @@ app.post('/submit', (req, res) => {
         .catch(() => res.status(500).send('Error writing to CSV'));
 });
 
-
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
