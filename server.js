@@ -49,6 +49,4 @@ app.post('/submit', (req, res) => {
         .catch(() => res.status(500).send('Error writing to CSV'));
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+
