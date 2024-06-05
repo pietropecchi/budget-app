@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple App</title>
+</head>
+<body>
+    <h1>Entries</h1>
+    <form action="{{ url_for('add_entry') }}" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <input type="submit" value="Add Entry">
+    </form>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in data %}
+            <tr>
+                <td>{{ entry.id }}</td>
+                <td>{{ entry.name }}</td>
+                <td>{{ entry.email }}</td>
+                <td>
+                    <form action="{{ url_for('edit_entry') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="id" value="{{ entry.id }}">
+                        <input type="text" name="name" value="{{ entry.name }}">
+                        <input type="email" name="email" value="{{ entry.email }}">
+                        <input type="submit" value="Edit">
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
